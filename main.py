@@ -5,6 +5,7 @@ from config import BOT_TOKEN
 from aiogram.client.default import DefaultBotProperties
 from bot.middlewares.session import DataBaseSession
 from bot.handlers.main_handlers import router as main_router
+from bot.handlers.comp_handlers import router as comp_handler
 from database.engine import async_session
 
 
@@ -19,6 +20,7 @@ async def main() -> None:
     dp.update.middleware(DataBaseSession(session_pool=async_session))
     
     dp.include_router(main_router)
+    dp.include_router(comp_handler)
     
     async def on_shutdown() -> None:
         await bot.session.close() 

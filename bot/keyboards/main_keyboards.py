@@ -6,10 +6,10 @@ main_reply_kb = ReplyKeyboardMarkup(
     one_time_keyboard=True,      # клавиатура скроется после первого использования
     keyboard=[
         [
-            KeyboardButton(text="Задать вопрос")
+            KeyboardButton(text="Проверить совместимость")
         ],
         [
-            KeyboardButton(text="Получить расклады")
+            KeyboardButton(text="Задать вопрос по отношениям")
         ],
         [
             KeyboardButton(text="Как работает бот")
