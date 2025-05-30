@@ -5,7 +5,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.user import register_user, check_active_subscription, check_has_energy
-from bot.keyboards.ask_keyboards import offer, ask_prompt, ask
+from bot.keyboards.ask_keyboards import offer, ask_prompt, ask, continue_markup
 import tempfile
 import os
 import asyncio
@@ -26,7 +26,9 @@ class Ask(StatesGroup):
 
     
 
-@router.message(F.text == "🔮Задать вопрос по отношениям🔮" or F.text == "❓ Задать вопрос про отношения")
+@router.message((F.text == "🔮Задать вопрос по отношениям🔮")
+    | (F.text == "❓ Задать вопрос про отношения")
+    | (F.text == "💌 Еще один вопрос про эти отношения"))
 async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
     if await check_active_subscription(session, msg.from_user.id):
         data = await state.get_data()
@@ -42,6 +44,20 @@ async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> 
 Анна 14.02.2001
 Дмитрий 24.07.2001""")
             await state.set_state(Ask.ask_names_dates)          
+    else:
+        await msg.answer(text="Нет подписки")
+
+
+@router.message(F.text == "❓ Вопрос про другие отношения")
+async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
+    if await check_active_subscription(session, msg.from_user.id):
+        await state.clear()        
+        await msg.answer(text="""Введи данные по вашей паре 👩‍❤️‍👨
+
+❗️ Всё в одном сообщении, в формате:
+Анна 14.02.2001
+Дмитрий 24.07.2001""")
+        await state.set_state(Ask.ask_names_dates)          
     else:
         await msg.answer(text="Нет подписки")
         
@@ -126,6 +142,7 @@ async def ask_pending(msg: Message, state: FSMContext, bot: Bot,):
     ans2 = msg.text
     await state.update_data(ans2 = ans2)
     data = await state.get_data()
+    await state.set_state(None)
     chat = await client.chat.completions.create(
         model="gpt-4.1-2025-04-14", 
         messages=[
@@ -144,4 +161,6 @@ async def ask_pending(msg: Message, state: FSMContext, bot: Bot,):
     answer = chat.choices[0].message.content.strip() 
     await state.update_data(res = answer)
     await msg.answer(answer)
+    await msg.answer(text="Выбери что хочешь сделать дальше",
+                     reply_markup=continue_markup)
     await state.set_state(None)

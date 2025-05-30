@@ -14,6 +14,22 @@ ask = ReplyKeyboardMarkup(
     ]
 )
 
+continue_markup = ReplyKeyboardMarkup(
+    resize_keyboard=True,
+    one_time_keyboard=True,
+    keyboard=[
+        [
+            KeyboardButton(text="💌 Еще один вопрос про эти отношения")
+        ],
+        [
+            KeyboardButton(text="❓ Вопрос про другие отношения")
+        ],
+        [
+            KeyboardButton(text="💘 Проверить совместимость")
+        ]
+    ]
+)
+
 
 offer = """Задай ЛЮБОЙ вопрос о ваших отношениях
 

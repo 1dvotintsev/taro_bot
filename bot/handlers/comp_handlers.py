@@ -1,4 +1,4 @@
-from aiogram import F, Router
+from aiogram import F, Router, Bot
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
@@ -6,6 +6,9 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.user import register_user, check_active_subscription, check_has_energy
 from bot.keyboards.comp_keyboards import q1_markup, q2_markup, q3_markup, comp_prompt, continue_markup
+from aiogram.utils.chat_action import ChatActionSender
+from aiogram.enums import ChatAction
+
 
 import openai
 from openai import AsyncOpenAI
@@ -21,8 +24,8 @@ class CheckComp(StatesGroup):
     quest3 = State()
     
 
-@router.message(F.text == "💞Проверить совместимость💞" or F.text == "💌 Еще одна проверка совместимости")
-async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
+@router.message((F.text == "💞Проверить совместимость💞") | (F.text == "💌 Еще одна проверка совместимости") | (F.text == "💘 Проверить совместимость"))
+async def send_quest(msg: Message, state: FSMContext, session: AsyncSession, bot: Bot) -> None:
     await state.clear()
     if await check_active_subscription(session, msg.from_user.id):
         await msg.answer(text="""Насколько вы подходите друг другу?
@@ -67,15 +70,15 @@ async def ask_quest(msg: Message, state: FSMContext):
     
     
 @router.message(CheckComp.quest3)
-async def ask_quest(msg: Message, state: FSMContext):
+async def ask_quest(msg: Message, state: FSMContext, bot: Bot):
     ans3 = msg.text
     data = await state.get_data()
     ans1 = data.get('ans1')
     ans2 = data.get('ans2')
     pair_info = data.get('pair_info')
     
-    try:
-        #client = AsyncOpenAI(api_key=GPT_TOKEN)
+    try:   
+        await state.set_state(None)
         response = await client.chat.completions.create(
             model="gpt-4.1-2025-04-14",
             messages=[

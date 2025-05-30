@@ -12,7 +12,13 @@ main_reply_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="💞Проверить совместимость💞")
         ],
         [
-            KeyboardButton(text="Как работает бот")
+            KeyboardButton(text="Приобрести заряды")
         ]
     ]
 )
+
+energy_button = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="Приобрести заряды", url='https://t.me/payment_matrix_bot')
+    ]
+])
