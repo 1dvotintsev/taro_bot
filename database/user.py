@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import User
-from sqlalchemy import select
+from sqlalchemy import select, update
 from datetime import datetime, timezone
 
 
@@ -21,7 +21,7 @@ async def register_user(
     if user:
         return False
 
-    new_user = User(id=user_id, username=username)
+    new_user = User(id=user_id, username=username, energy=3)
     session.add(new_user)
     await session.commit()
     return True
@@ -46,14 +46,30 @@ async def check_active_subscription(
 
 async def check_has_energy(
     session: AsyncSession,
-    user_id: int
+    user_id: int,
+    minus: bool = True
 ) -> bool:
     """
     Асинхронно подгружает energy из БД и проверяет >0.
+    Если energy > 0, вычитает 1 единицу и возвращает True.
     """
+    # Сначала читаем текущее значение energy
     result = await session.execute(
         select(User.energy)
         .where(User.id == user_id)
     )
     energy = result.scalar_one_or_none() or 0
-    return energy > 0
+
+    if energy > 0:
+        if minus:
+            # Вычитаем 1 из поля energy
+            stmt = (
+                update(User)
+                .where(User.id == user_id)
+                .values(energy=energy - 1)
+            )
+        await session.execute(stmt)
+        await session.commit()
+        return True
+    else:
+        return False

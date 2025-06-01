@@ -1,13 +1,12 @@
 from aiogram import F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery
-
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.main_keyboards import main_reply_kb, energy_button
 
-from database.user import register_user, check_active_subscription, check_has_energy
+from database.user import register_user, check_active_subscription
 
 
 router = Router()
@@ -50,8 +49,17 @@ async def cmd_start(msg: Message, state: FSMContext, session: AsyncSession) -> N
                         reply_markup=main_reply_kb)
 
 
-@router.message(F.text == "Приобрести заряды")
+@router.message(F.text == "🔮 Безграничный доступ")
 async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
     await state.clear()
-    await msg.answer(text="🔮 Заряды - виртуальная валюта, которой ты можешь оплачивать свои вопросы к Матрице Судьбы. Бесплатно их можно получить пригласив друзей, также можно купить их.",
+    if not await check_active_subscription(session, msg.from_user.id):
+        await msg.answer(text="""❤️‍🔥 Я могу всегда быть с тобой на связи и проконсультировать в любой ситуцации 💔
+                         
+Ты можешь
+                         
+🔮 Открыть полный доступ - и задавать столько вопросов и  делать столько проверок совместимости, сколько нужно""",
                      reply_markup=energy_button)
+    else:
+        await msg.answer(text="""❤️‍🔥 Я всегда с тобой на связи ❤️‍🔥
+                         
+🔮 Ты можешь задавать столько вопросов и  делать столько проверок совместимости, сколько нужно""")

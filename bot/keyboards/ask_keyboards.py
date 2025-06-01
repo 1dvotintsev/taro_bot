@@ -14,6 +14,13 @@ ask = ReplyKeyboardMarkup(
     ]
 )
 
+ask_pair_btn = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="Да", callback_data="ask_yes"),
+        InlineKeyboardButton(text="Нет", callback_data="ask_no")
+    ]
+])
+
 continue_markup = ReplyKeyboardMarkup(
     resize_keyboard=True,
     one_time_keyboard=True,

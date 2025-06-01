@@ -23,6 +23,13 @@ q1_markup = ReplyKeyboardMarkup(
     ]
 )
 
+comp_pair_btn = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="Да", callback_data="comp_yes"),
+        InlineKeyboardButton(text="Нет", callback_data="comp_no")
+    ]
+])
+
 q2_markup = ReplyKeyboardMarkup(
     resize_keyboard=True,
     one_time_keyboard=True,

@@ -1,16 +1,12 @@
 from aiogram import F, Router, Bot
-from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.user import register_user, check_active_subscription, check_has_energy
-from bot.keyboards.ask_keyboards import offer, ask_prompt, ask, continue_markup
-import tempfile
-import os
-import asyncio
-import openai
-import io
+from database.user import check_active_subscription, check_has_energy
+from bot.keyboards.ask_keyboards import offer, ask_prompt, ask, continue_markup, ask_pair_btn
+from bot.keyboards.main_keyboards import energy_button
+
 from openai import AsyncOpenAI
 from config import GPT_TOKEN
 
@@ -27,10 +23,9 @@ class Ask(StatesGroup):
     
 
 @router.message((F.text == "🔮Задать вопрос по отношениям🔮")
-    | (F.text == "❓ Задать вопрос про отношения")
     | (F.text == "💌 Еще один вопрос про эти отношения"))
 async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
-    if await check_active_subscription(session, msg.from_user.id):
+    if await check_active_subscription(session, msg.from_user.id) or await check_has_energy(session, msg.from_user.id):
         data = await state.get_data()
         
         if 'pair_info' in data:
@@ -45,12 +40,65 @@ async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> 
 Дмитрий 24.07.2001""")
             await state.set_state(Ask.ask_names_dates)          
     else:
-        await msg.answer(text="Нет подписки")
+        await msg.answer(text="""❤️‍🔥 Ты уже сделала максимум бесплатных разборов и проверок 💔
+                         
+Но ты можешь
+                         
+🔮 Открыть полный доступ - и задавать столько вопросов и  делать столько проверок совместимости, сколько нужно""",
+                     reply_markup=energy_button)
+        
+
+@router.message(F.text == "❓ Задать вопрос про отношения")     # вопрос из проверик на совместимость
+async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
+    if await check_active_subscription(session, msg.from_user.id) or await check_has_energy(session, msg.from_user.id):
+        data = await state.get_data()
+        
+        if 'pair_info' in data:
+            pair_info = data['pair_info']
+            await msg.answer(text=f"Готовим ответ по этой паре?\n\n{pair_info}",
+                             reply_markup=ask_pair_btn)
+            await state.set_state(Ask.ask_from_user)
+        else:
+            await msg.answer(text="""Введи данные по вашей паре 👩‍❤️‍👨
+
+❗️ Всё в одном сообщении, в формате:
+Анна 14.02.2001
+Дмитрий 24.07.2001""")
+            await state.set_state(Ask.ask_names_dates)          
+    else:
+        await msg.answer(text="""❤️‍🔥 Ты уже сделала максимум бесплатных разборов и проверок 💔
+                         
+Но ты можешь
+                         
+🔮 Открыть полный доступ - и задавать столько вопросов и  делать столько проверок совместимости, сколько нужно""",
+                     reply_markup=energy_button)
+        
+        
+@router.callback_query(F.data == 'ask_yes')
+async def send_quest(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    data = await state.get_data()
+        
+    if 'pair_info' in data:
+        pair_info = data['pair_info']
+        await callback.message.answer(text=offer)
+        await state.set_state(Ask.ask_from_user)
+         
+
+@router.callback_query(F.data == 'ask_no')
+async def send_quest(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    await callback.message.answer(text="""Введи данные по вашей паре 👩‍❤️‍👨
+
+❗️ Всё в одном сообщении, в формате:
+Анна 14.02.2001
+Дмитрий 24.07.2001""")
+    await state.set_state(Ask.ask_names_dates) 
 
 
 @router.message(F.text == "❓ Вопрос про другие отношения")
 async def send_quest(msg: Message, state: FSMContext, session: AsyncSession) -> None:
-    if await check_active_subscription(session, msg.from_user.id):
+    if await check_active_subscription(session, msg.from_user.id) or check_has_energy(session, msg.from_user.id):
         await state.clear()        
         await msg.answer(text="""Введи данные по вашей паре 👩‍❤️‍👨
 
@@ -143,6 +191,7 @@ async def ask_pending(msg: Message, state: FSMContext, bot: Bot,):
     await state.update_data(ans2 = ans2)
     data = await state.get_data()
     await state.set_state(None)
+    await msg.answer(text="Думаю 🧠")
     chat = await client.chat.completions.create(
         model="gpt-4.1-2025-04-14", 
         messages=[

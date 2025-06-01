@@ -1,14 +1,13 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 
-from config import BOT_TOKEN, GPT_TOKEN
+from config import BOT_TOKEN
 from aiogram.client.default import DefaultBotProperties
 from bot.middlewares.session import DataBaseSession
 from bot.handlers.main_handlers import router as main_router
 from bot.handlers.comp_handlers import router as comp_router
 from bot.handlers.ask_handlers import router as ask_router
 from database.engine import async_session
-from openai import AsyncOpenAI
 
 
 dp = Dispatcher()
